@@ -2,7 +2,7 @@ import ProductsChart from "@/components/products-chart";
 import Sidebar from "@/components/sidebar";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Package, DollarSign, AlertTriangle, BarChart3, PieChart } from "lucide-react";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -78,87 +78,119 @@ export default async function DashboardPage() {
   });
   
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-linear-to-br from-pink-50 via-rose-50 to-red-50">
       <Sidebar currentPath="/dashboard" />
       <main className="ml-64 p-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">
-                Dashboard
-              </h1>
-              <p className="text-sm text-gray-500">
-                Welcome back! Here is an overview of your inventory.
-              </p>
+        {/* Header with decorative elements */}
+        <div className="mb-10 relative">
+          <div className="absolute -left-8 -top-4 w-72 h-72 bg-linear-to-br from-[#de3163]/20 to-pink-300/20 rounded-full blur-3xl"></div>
+          <div className="relative bg-white/60 backdrop-blur-md rounded-2xl border border-pink-200 shadow-lg shadow-pink-200/50 p-8">
+            <div className="flex items-center space-x-4 mb-3">
+              <div className="w-2 h-16 bg-linear-to-b from-[#de3163] to-pink-500 rounded-full"></div>
+              <div>
+                <h1 className="text-5xl font-black text-gray-900 mb-1 tracking-tight">
+                  Dashboard Overview
+                </h1>
+                <p className="text-base text-gray-700 font-medium">
+                  Welcome back! Here's what's happening with your inventory today.
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Key Metrics */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">
-              Key Metrics
-            </h2>
-            <div className="grid grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900">
-                  {totalProducts}
+        {/* Top Stats Cards - Horizontal Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Total Products Card */}
+          <div className="group relative bg-linear-to-br from-white via-white to-pink-50/50 rounded-2xl border-2 border-pink-200 shadow-xl shadow-pink-100/50 p-6 hover:shadow-2xl hover:shadow-[#de3163]/30 hover:-translate-y-2 hover:border-[#de3163] transition-all duration-300 overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-[#de3163]/20 to-transparent rounded-full -mr-20 -mt-20 blur-2xl"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-linear-to-br from-[#de3163] to-pink-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform">
+                  <Package className="w-7 h-7 text-white" />
                 </div>
-                <div className="text-sm text-gray-600">Total Products</div>
-                <div className="flex items-center justify-center mt-1">
-                  <span className="text-xs text-green-600">
-                    +{totalProducts}
-                  </span>
-                  <TrendingUp className="w-3 h-3 text-green-600 ml-1" />
+                <div className="flex items-center text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+                  <TrendingUp className="w-4 h-4 mr-1" />
+                  <span className="text-sm font-bold">+{totalProducts}</span>
                 </div>
               </div>
-
-              <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900">
-                  ${Number(totalValue).toFixed(0)}
-                </div>
-                <div className="text-sm text-gray-600">Total Value</div>
-                <div className="flex items-center justify-center mt-1">
-                  <span className="text-xs text-green-600">
-                    +${Number(totalValue).toFixed(0)}
-                  </span>
-                  <TrendingUp className="w-3 h-3 text-green-600 ml-1" />
-                </div>
+              <div className="text-5xl font-black text-gray-900 mb-2">
+                {totalProducts}
               </div>
-
-              <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900">
-                  {lowStock}
-                </div>
-                <div className="text-sm text-gray-600">Low Stock</div>
-                <div className="flex items-center justify-center mt-1">
-                  <span className="text-xs text-green-600">+{lowStock}</span>
-                  <TrendingUp className="w-3 h-3 text-green-600 ml-1" />
-                </div>
-              </div>
+              <div className="text-sm font-semibold text-gray-700">Total Products</div>
             </div>
           </div>
 
-          {/* Iventory over time */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2>New products per week</h2>
+          {/* Total Value Card */}
+          <div className="group relative bg-linear-to-br from-white via-white to-pink-50/50 rounded-2xl border-2 border-pink-200 shadow-xl shadow-pink-100/50 p-6 hover:shadow-2xl hover:shadow-[#de3163]/30 hover:-translate-y-2 hover:border-[#de3163] transition-all duration-300 overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-pink-500/20 to-transparent rounded-full -mr-20 -mt-20 blur-2xl"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-linear-to-br from-pink-500 to-rose-600 rounded-xl shadow-lg group-hover:scale-110 transition-transform">
+                  <DollarSign className="w-7 h-7 text-white" />
+                </div>
+                <div className="flex items-center text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
+                  <TrendingUp className="w-4 h-4 mr-1" />
+                  <span className="text-sm font-bold">+${Number(totalValue).toFixed(0)}</span>
+                </div>
+              </div>
+              <div className="text-5xl font-black text-gray-900 mb-2">
+                ${Number(totalValue).toFixed(0)}
+              </div>
+              <div className="text-sm font-semibold text-gray-700">Total Inventory Value</div>
             </div>
-            <div className="h-48">
+          </div>
+
+          {/* Low Stock Alert Card */}
+          <div className="group relative bg-linear-to-br from-white via-white to-amber-50/50 rounded-2xl border-2 border-amber-200 shadow-xl shadow-amber-100/50 p-6 hover:shadow-2xl hover:shadow-amber-400/30 hover:-translate-y-2 hover:border-amber-400 transition-all duration-300 overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-linear-to-br from-amber-400/20 to-transparent rounded-full -mr-20 -mt-20 blur-2xl"></div>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-linear-to-br from-amber-500 to-orange-600 rounded-xl shadow-lg group-hover:scale-110 group-hover:rotate-12 transition-all">
+                  <AlertTriangle className="w-7 h-7 text-white" />
+                </div>
+                <div className="flex items-center text-amber-700 bg-amber-100 px-3 py-1.5 rounded-full border border-amber-300">
+                  <span className="text-sm font-bold">⚠️ Alert</span>
+                </div>
+              </div>
+              <div className="text-5xl font-black text-gray-900 mb-2">
+                {lowStock}
+              </div>
+              <div className="text-sm font-semibold text-gray-700">Low Stock Items</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Chart Section - Full Width */}
+        <div className="mb-8">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-pink-100 shadow-lg shadow-pink-100/50 p-8 hover:shadow-xl hover:shadow-pink-200/50 transition-all duration-300">
+            <div className="flex items-center mb-6">
+              <div className="p-2 bg-linear-to-br from-[#de3163] to-pink-600 rounded-lg mr-4">
+                <BarChart3 className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">Product Growth Trend</h2>
+                <p className="text-sm text-gray-600">New products added per week over the last 12 weeks</p>
+              </div>
+            </div>
+            <div className="h-64">
               <ProductsChart data={weeklyProductsData} />
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Stock Levels */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Stock Levels
-              </h2>
+        {/* Bottom Section - Stock Levels & Efficiency */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Stock Levels - Takes 2 columns */}
+          <div className="lg:col-span-2 bg-white/80 backdrop-blur-sm rounded-2xl border border-pink-100 shadow-lg shadow-pink-100/50 p-6 hover:shadow-xl hover:shadow-pink-200/50 transition-all duration-300">
+            <div className="flex items-center mb-6">
+              <div className="p-2 bg-linear-to-br from-[#de3163] to-pink-600 rounded-lg mr-4">
+                <Package className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">Recent Stock Levels</h2>
+                <p className="text-sm text-gray-600">Your 5 most recently added products</p>
+              </div>
             </div>
             <div className="space-y-3">
               {recent.map((product, key) => {
@@ -170,32 +202,37 @@ export default async function DashboardPage() {
                     : 2;
 
                 const bgColors = [
-                  "bg-red-600",
-                  "bg-yellow-600",
-                  "bg-green-600",
+                  "bg-red-500",
+                  "bg-amber-500",
+                  "bg-emerald-500",
                 ];
                 const textColors = [
                   "text-red-600",
-                  "text-yellow-600",
-                  "text-green-600",
+                  "text-amber-600",
+                  "text-emerald-600",
+                ];
+                const bgGradients = [
+                  "from-red-50 to-rose-50",
+                  "from-amber-50 to-orange-50",
+                  "from-emerald-50 to-green-50",
                 ];
                 return (
                   <div
                     key={key}
-                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50"
+                    className={`flex items-center justify-between p-4 rounded-xl bg-linear-to-r ${bgGradients[stockLevel]} border border-pink-100 hover:border-[#de3163] hover:shadow-md transition-all duration-200 group`}
                   >
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-4">
                       <div
-                        className={`w-3 h-3 rounded-full ${bgColors[stockLevel]}`}
+                        className={`w-4 h-4 rounded-full ${bgColors[stockLevel]} shadow-lg group-hover:scale-110 transition-transform`}
                       />
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-semibold text-gray-800">
                         {product.name}
                       </span>
                     </div>
-                    <div
-                      className={`text-sm font-medium ${textColors[stockLevel]}`}
-                    >
-                      {product.quantity} units
+                    <div className="flex items-center space-x-2">
+                      <span className={`text-sm font-bold ${textColors[stockLevel]} bg-white px-3 py-1 rounded-lg shadow-sm`}>
+                        {product.quantity} units
+                      </span>
                     </div>
                   </div>
                 );
@@ -203,18 +240,19 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* Efficiency */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Efficiency
-              </h2>
+          {/* Efficiency - Takes 1 column */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-pink-100 shadow-lg shadow-pink-100/50 p-6 hover:shadow-xl hover:shadow-pink-200/50 transition-all duration-300">
+            <div className="flex items-center mb-6">
+              <div className="p-2 bg-linear-to-br from-[#de3163] to-pink-600 rounded-lg mr-3">
+                <PieChart className="w-5 h-5 text-white" />
+              </div>
+              <h2 className="text-lg font-bold text-gray-800">Stock Efficiency</h2>
             </div>
-            <div className="flex items-center justify-center">
-              <div className="relative w-48 h-48">
-                <div className="absolute inset-0 rounded-full border-8 border-gray-200"></div>
+            <div className="flex items-center justify-center mb-6">
+              <div className="relative w-40 h-40">
+                <div className="absolute inset-0 rounded-full border-8 border-pink-100"></div>
                 <div
-                  className="absolute inset-0 rounded-full border-8 border-purple-600"
+                  className="absolute inset-0 rounded-full border-8 border-[#de3163]"
                   style={{
                     clipPath:
                       "polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 50%)",
@@ -222,32 +260,35 @@ export default async function DashboardPage() {
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-3xl font-bold bg-linear-to-br from-[#de3163] to-pink-600 bg-clip-text text-transparent">
                       {inStockPercentage}%
                     </div>
-                    <div className="text-sm text-gray-600">In Stock</div>
+                    <div className="text-xs text-gray-600 font-medium mt-1">In Stock</div>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="mt-6 space-y-2">
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-purple-200" />
-                  <span>In Stock ({inStockPercentage}%)</span>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-linear-to-r from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 transition-colors">
+                <div className="flex items-center space-x-3">
+                  <div className="w-3 h-3 rounded-full bg-pink-200 shadow-sm" />
+                  <span className="text-sm font-medium text-gray-700">In Stock</span>
                 </div>
+                <span className="text-sm font-bold text-[#de3163]">{inStockPercentage}%</span>
               </div>
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-purple-600" />
-                  <span>Low Stock ({lowStockPercentage}%)</span>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-linear-to-r from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 transition-colors">
+                <div className="flex items-center space-x-3">
+                  <div className="w-3 h-3 rounded-full bg-[#de3163] shadow-sm" />
+                  <span className="text-sm font-medium text-gray-700">Low Stock</span>
                 </div>
+                <span className="text-sm font-bold text-[#de3163]">{lowStockPercentage}%</span>
               </div>
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-gray-200" />
-                  <span>Out of Stock ({outOfStockPercentage}%)</span>
+              <div className="flex items-center justify-between p-3 rounded-xl bg-linear-to-r from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 transition-colors">
+                <div className="flex items-center space-x-3">
+                  <div className="w-3 h-3 rounded-full bg-pink-100 shadow-sm" />
+                  <span className="text-sm font-medium text-gray-700">Out of Stock</span>
                 </div>
+                <span className="text-sm font-bold text-[#de3163]">{outOfStockPercentage}%</span>
               </div>
             </div>
           </div>
