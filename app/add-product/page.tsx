@@ -1,22 +1,67 @@
+"use client";
+
 import Sidebar from "@/components/sidebar";
 import { createProduct } from "@/lib/actions/products";
-import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 
-export default async function AddProductPage() {
-  const user = await getCurrentUser();
+export default function AddProductPage() {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  async function handleSubmit(formData: FormData) {
+    startTransition(async () => {
+      try {
+        await createProduct(formData);
+        
+        setShowSuccess(true);
+        
+        setTimeout(() => {
+          setShowSuccess(false);
+        }, 2000);
+
+      } catch (error) {
+        console.error("Failed to add product:", error);
+      }
+    });
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-linear-to-br from-pink-50 via-white to-rose-50">
       <Sidebar currentPath="/add-product" />
+
+      {/* Success Toast */}
+      {showSuccess && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top duration-300">
+          <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3">
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+            <span className="font-semibold">Product added successfully!</span>
+          </div>
+        </div>
+      )}
 
       <main className="ml-64 p-8">
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">
+              <h1 className="text-3xl font-bold text-gray-900 mb-1">
                 Add Product
               </h1>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-600">
                 Add a new product to your inventory
               </p>
             </div>
@@ -24,12 +69,12 @@ export default async function AddProductPage() {
         </div>
 
         <div className="max-w-2xl">
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <form className="space-y-6" action={createProduct}>
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+            <form className="space-y-6" action={handleSubmit}>
               <div>
                 <label
                   htmlFor="name"
-                  className="block text-sm font-medium text-gray-700 mb-2"
+                  className="block text-sm font-semibold text-gray-800 mb-2"
                 >
                   Product Name *
                 </label>
@@ -38,7 +83,8 @@ export default async function AddProductPage() {
                   id="name"
                   name="name"
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
+                  disabled={isPending}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#de3163] focus:ring-2 focus:ring-[#de3163]/20 focus:outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
                   placeholder="Enter Product Name"
                 />
               </div>
@@ -47,7 +93,7 @@ export default async function AddProductPage() {
                 <div>
                   <label
                     htmlFor="quantity"
-                    className="block text-sm font-medium text-gray-700 mb-2"
+                    className="block text-sm font-semibold text-gray-800 mb-2"
                   >
                     Quantity *
                   </label>
@@ -57,14 +103,15 @@ export default async function AddProductPage() {
                     name="quantity"
                     min="0"
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
+                    disabled={isPending}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#de3163] focus:ring-2 focus:ring-[#de3163]/20 focus:outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
                     placeholder="0"
                   />
                 </div>
                 <div>
                   <label
                     htmlFor="price"
-                    className="block text-sm font-medium text-gray-700 mb-2"
+                    className="block text-sm font-semibold text-gray-800 mb-2"
                   >
                     Price *
                   </label>
@@ -75,7 +122,8 @@ export default async function AddProductPage() {
                     step="0.01"
                     min="0"
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
+                    disabled={isPending}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#de3163] focus:ring-2 focus:ring-[#de3163]/20 focus:outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
                     placeholder="0.0"
                   />
                 </div>
@@ -84,7 +132,7 @@ export default async function AddProductPage() {
               <div>
                 <label
                   htmlFor="sku"
-                  className="block text-sm font-medium text-gray-700 mb-2"
+                  className="block text-sm font-semibold text-gray-800 mb-2"
                 >
                   SKU (optional)
                 </label>
@@ -92,7 +140,8 @@ export default async function AddProductPage() {
                   type="text"
                   id="sku"
                   name="sku"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
+                  disabled={isPending}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#de3163] focus:ring-2 focus:ring-[#de3163]/20 focus:outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
                   placeholder="Enter SKU"
                 />
               </div>
@@ -100,7 +149,7 @@ export default async function AddProductPage() {
               <div>
                 <label
                   htmlFor="lowStockAt"
-                  className="block text-sm font-medium text-gray-700 mb-2"
+                  className="block text-sm font-semibold text-gray-800 mb-2"
                 >
                   Low Stock At (optional)
                 </label>
@@ -109,21 +158,49 @@ export default async function AddProductPage() {
                   id="lowStockAt"
                   name="lowStockAt"
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
+                  disabled={isPending}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#de3163] focus:ring-2 focus:ring-[#de3163]/20 focus:outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
                   placeholder="Enter low stock threshold"
                 />
               </div>
 
-              <div className="flex gap-5">
+              <div className="flex gap-4 pt-4">
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  disabled={isPending}
+                  className="px-8 py-3 bg-[#de3163] text-white font-semibold rounded-lg hover:bg-[#c72856] active:bg-[#b01f4a] shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center gap-2"
                 >
-                  Add Product
+                  {isPending ? (
+                    <>
+                      <svg
+                        className="animate-spin h-5 w-5"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Adding...
+                    </>
+                  ) : (
+                    "Add Product"
+                  )}
                 </button>
                 <Link
                   href="/inventory"
-                  className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+                  className="px-8 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 active:bg-gray-300 border-2 border-gray-200 transition-all duration-200"
                 >
                   Cancel
                 </Link>
