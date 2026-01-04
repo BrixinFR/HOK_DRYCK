@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "../auth";
 import { prisma } from "../prisma";
 import { z } from "zod";
@@ -20,6 +21,9 @@ export async function deleteProduct(formData: FormData) {
   await prisma.product.deleteMany({
     where: { id: id, userId: user.id },
   });
+  
+  revalidatePath("/inventory");
+  revalidatePath("/dashboard");
 }
 
 export async function createProduct(formData: FormData) {
@@ -38,9 +42,36 @@ export async function createProduct(formData: FormData) {
   }
 
   try {
-    await prisma.product.create({
-      data: { ...parsed.data, userId: user.id },
+    // Check if a product with this exact name already exists (case-insensitive)
+    const existingProduct = await prisma.product.findFirst({
+      where: {
+        name: {
+          equals: parsed.data.name,
+          mode: "insensitive",
+        },
+      },
     });
+
+    if (existingProduct) {
+      // Product exists - add to the existing quantity
+      await prisma.product.update({
+        where: { id: existingProduct.id },
+        data: {
+          quantity: existingProduct.quantity + parsed.data.quantity,
+          price: parsed.data.price, // Update to new price
+          ...(parsed.data.sku && { sku: parsed.data.sku }),
+          ...(parsed.data.lowStockAt && { lowStockAt: parsed.data.lowStockAt }),
+        },
+      });
+    } else {
+      // Product doesn't exist - create new one
+      await prisma.product.create({
+        data: { ...parsed.data, userId: user.id },
+      });
+    }
+    
+    revalidatePath("/inventory");
+    revalidatePath("/dashboard");
   } catch (error) {
     console.error("Actual error:", error);
     throw new Error("Failed to create product.");
