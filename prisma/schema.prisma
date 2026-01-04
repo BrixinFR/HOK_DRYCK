@@ -17,7 +17,31 @@ model Product {
   lowStockAt Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  sales SaleItem[]
 
   @@index([userId, name])
   @@index([createdAt])
+}
+
+model Sale {
+  id           String      @id @default(cuid())
+  totalAmount  Decimal     @db.Decimal(10, 2)
+  createdAt    DateTime    @default(now())
+  items        SaleItem[]
+
+  @@index([createdAt])
+}
+
+model SaleItem {
+  id        String   @id @default(cuid())
+  saleId    String
+  productId String
+  quantity  Int
+  price     Decimal  @db.Decimal(10, 2)
+  
+  sale      Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+  @@index([productId])
 }
