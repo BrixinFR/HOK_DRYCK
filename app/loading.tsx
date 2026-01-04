@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Package, Plus, Settings } from "lucide-react";
+import { BarChart3, Package, Plus, Settings, ShoppingCart } from "lucide-react";
 import { UserButton } from "@stackframe/stack";
 
 // Skeleton component for loading states
@@ -18,6 +18,7 @@ function LoadingSidebar() {
     { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
     { name: "Inventory", href: "/inventory", icon: Package },
     { name: "Add Product", href: "/add-product", icon: Plus },
+    { name: "Sell Products", href: "/sell", icon: ShoppingCart },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
@@ -154,7 +155,6 @@ function MainContentSkeleton({
 export default function Loading() {
   const pathname = usePathname();
 
-  // Don't show sidebar on public routes
   const showSidebar = !["/", "/sign-in", "/sign-up"].includes(pathname);
 
   return (

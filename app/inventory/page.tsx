@@ -91,7 +91,7 @@ export default async function InventoryPage({
                                             {product.sku || "-"}
                                         </td>
                                         <td className="px-6 py-4 text-s text-gray-500">
-                                            ${Number(product.price).toFixed(2)}
+                                            {Number(product.price).toFixed(2)} kr
                                         </td>
                                         <td className="px-6 py-4 text-s text-gray-500">
                                             {product.quantity}

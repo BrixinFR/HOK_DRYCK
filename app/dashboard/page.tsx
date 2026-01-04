@@ -143,11 +143,11 @@ export default async function DashboardPage() {
                 </div>
                 <div className="flex items-center text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
                   <TrendingUp className="w-4 h-4 mr-1" />
-                  <span className="text-sm font-bold">+${Number(totalValue).toFixed(0)}</span>
+                  <span className="text-sm font-bold">+{Number(totalValue).toFixed(0)} kr</span>
                 </div>
               </div>
               <div className="text-5xl font-black text-gray-900 mb-2">
-                ${Number(totalValue).toFixed(0)}
+                {Number(totalValue).toFixed(0)} kr
               </div>
               <div className="text-sm font-semibold text-gray-700">Total Inventory Value</div>
             </div>
