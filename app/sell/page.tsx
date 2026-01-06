@@ -24,7 +24,7 @@ export default function SellPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
-  const [swishNumber, setSwishNumber] = useState("0730874001"); // Replace with your actual Swish number (without +46)
+  const [swishNumber, setSwishNumber] = useState("0730874001");
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -38,7 +38,6 @@ export default function SellPage() {
     try {
       const response = await fetch("/api/products");
       const data = await response.json();
-      // Convert price and quantity to numbers
       const processedData = data.map((product: any) => ({
         ...product,
         price: Number(product.price),
