@@ -4,8 +4,25 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TrendingUp, Package, DollarSign, AlertTriangle, BarChart3, PieChart } from "lucide-react";
 
-export default async function DashboardPage() {
+// Define types for better type safety
+interface ProductData {
+  price: any;
+  quantity: any;
+  createdAt: Date;
+}
 
+interface RecentProduct {
+  name: string;
+  quantity: any;
+  lowStockAt: any;
+}
+
+interface WeeklyData {
+  week: string;
+  products: number;
+}
+
+export default async function DashboardPage() {
   const user = await getCurrentUser();
 
   const [totalProducts, lowStock, allProducts] = await Promise.all([
@@ -22,21 +39,21 @@ export default async function DashboardPage() {
   ]);
 
   const totalItems = allProducts.reduce(
-    (sum: number, product: { quantity: any }) => sum + Number(product.quantity),
+    (sum: number, product: ProductData) => sum + Number(product.quantity),
     0
   );
 
   const totalValue = allProducts.reduce(
-    (sum: number, product: { price: any; quantity: any }) => sum + Number(product.price) * Number(product.quantity),
+    (sum: number, product: ProductData) => sum + Number(product.price) * Number(product.quantity),
     0
   );
 
-  const inStockCount = allProducts.filter((p: { quantity: any }) => Number(p.quantity) > 5).length;
+  const inStockCount = allProducts.filter((p: ProductData) => Number(p.quantity) > 5).length;
   const lowStockCount = allProducts.filter(
-    (p: { quantity: any }) => Number(p.quantity) <= 5 && Number(p.quantity) >= 1
+    (p: ProductData) => Number(p.quantity) <= 5 && Number(p.quantity) >= 1
   ).length;
   const outOfStockCount = allProducts.filter(
-    (p: { quantity: any }) => Number(p.quantity) === 0
+    (p: ProductData) => Number(p.quantity) === 0
   ).length;
 
   const inStockPercentage =
@@ -47,7 +64,7 @@ export default async function DashboardPage() {
     totalProducts > 0 ? Math.round((outOfStockCount / totalProducts) * 100) : 0;
 
   const now = new Date();
-  const weeklyProductsData: { week: string; products: number }[] = [];
+  const weeklyProductsData: WeeklyData[] = [];
 
   for (let i = 11; i >= 0; i--) {
     const weekStart = new Date(now);
@@ -56,14 +73,14 @@ export default async function DashboardPage() {
 
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
-    weekStart.setHours(23, 59, 59, 999);
+    weekEnd.setHours(23, 59, 59, 999);
 
     const weekLabel = `${String(weekStart.getMonth() + 1).padStart(
       2,
       "0"
     )}/${String(weekStart.getDate() + 1).padStart(2, "0")}`;
 
-    const weekProducts = allProducts.filter((product: { createdAt: any }) => {
+    const weekProducts = allProducts.filter((product: ProductData) => {
       const productDate = new Date(product.createdAt);
       return productDate >= weekStart && productDate <= weekEnd;
     });
@@ -94,7 +111,7 @@ export default async function DashboardPage() {
                   Dashboard Overview
                 </h1>
                 <p className="text-base text-gray-700 font-medium">
-                  Welcome back! Here's what's happening with your inventory today.
+                  Welcome back! Here&apos;s what&apos;s happening with your inventory today.
                 </p>
               </div>
             </div>
@@ -206,7 +223,7 @@ export default async function DashboardPage() {
               </div>
             </div>
             <div className="space-y-3">
-              {recent.map((product, key) => {
+              {recent.map((product: RecentProduct, key: number) => {
                 const stockLevel =
                   product.quantity === 0
                     ? 0
@@ -214,17 +231,17 @@ export default async function DashboardPage() {
                     ? 1
                     : 2;
 
-                const bgColors = [
+                const bgColors: string[] = [
                   "bg-red-500",
                   "bg-amber-500",
                   "bg-emerald-500",
                 ];
-                const textColors = [
+                const textColors: string[] = [
                   "text-red-600",
                   "text-amber-600",
                   "text-emerald-600",
                 ];
-                const bgGradients = [
+                const bgGradients: string[] = [
                   "from-red-50 to-rose-50",
                   "from-amber-50 to-orange-50",
                   "from-emerald-50 to-green-50",
