@@ -31,12 +31,12 @@ export default async function DashboardPage() {
     0
   );
 
-  const inStockCount = allProducts.filter((p) => Number(p.quantity) > 5).length;
+  const inStockCount = allProducts.filter((p: { quantity: any }) => Number(p.quantity) > 5).length;
   const lowStockCount = allProducts.filter(
-    (p) => Number(p.quantity) <= 5 && Number(p.quantity) >= 1
+    (p: { quantity: any }) => Number(p.quantity) <= 5 && Number(p.quantity) >= 1
   ).length;
   const outOfStockCount = allProducts.filter(
-    (p) => Number(p.quantity) === 0
+    (p: { quantity: any }) => Number(p.quantity) === 0
   ).length;
 
   const inStockPercentage =
@@ -63,7 +63,7 @@ export default async function DashboardPage() {
       "0"
     )}/${String(weekStart.getDate() + 1).padStart(2, "0")}`;
 
-    const weekProducts = allProducts.filter((product) => {
+    const weekProducts = allProducts.filter((product: { createdAt: any }) => {
       const productDate = new Date(product.createdAt);
       return productDate >= weekStart && productDate <= weekEnd;
     });
