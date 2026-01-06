@@ -22,12 +22,12 @@ export default async function DashboardPage() {
   ]);
 
   const totalItems = allProducts.reduce(
-    (sum: number, product) => sum + Number(product.quantity),
+    (sum: number, product: { quantity: any }) => sum + Number(product.quantity),
     0
   );
 
   const totalValue = allProducts.reduce(
-    (sum: number, product) => sum + Number(product.price) * Number(product.quantity),
+    (sum: number, product: { price: any; quantity: any }) => sum + Number(product.price) * Number(product.quantity),
     0
   );
 
@@ -47,7 +47,7 @@ export default async function DashboardPage() {
     totalProducts > 0 ? Math.round((outOfStockCount / totalProducts) * 100) : 0;
 
   const now = new Date();
-  const weeklyProductsData = [];
+  const weeklyProductsData: { week: string; products: number }[] = [];
 
   for (let i = 11; i >= 0; i--) {
     const weekStart = new Date(now);
