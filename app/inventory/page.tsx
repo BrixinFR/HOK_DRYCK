@@ -1,137 +1,113 @@
-import Pagination from "@/components/Pagination";
-import Sidebar from "@/components/sidebar";
-import { deleteProduct } from "@/lib/actions/products";
-import { getCurrentUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+"use client";
 
-export default async function InventoryPage({
-    searchParams
-}: {
-    searchParams: Promise<{ q?: string, page?: string}>;
-}) {
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
 
-    const user = await getCurrentUser();
+interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  baseUrl: string;
+  searchParams: Record<string, string>;
+}
 
-    const pageSize = 10;
-    const params = await searchParams;
-    const q = (params.q ?? "").trim();
-    const page = Math.max(1, Number(params.page ?? 1));
+export default function Pagination({
+  currentPage,
+  totalPages,
+  baseUrl,
+  searchParams,
+}: PaginationProps) {
+  if (totalPages <= 1) return null;
 
-    const where = {
-        ...( q ? {name: {contains: q, mode: "insensitive" as const} } : {}),
-    };
+  const getPageUrl = (page: number): string => {
+    const params = new URLSearchParams({ ...searchParams, page: String(page) });
+    return `${baseUrl}?${params.toString()}`;
+  };
 
-    const [totalCount, items] = await Promise.all([
-        prisma.product.count({where}),
-        prisma.product.findMany({ 
-            where,
-            orderBy: {createdAt: "desc"},
-            skip: (page - 1) * pageSize,
-            take: pageSize,
-        }),
-    ]);
+  const getVisiblePages = (): (number | string)[] => {
+    const delta = 2;
+    const range: number[] = [];
+    const rangeWithDots: (number | string)[] = [];
 
-    const totalPages = Math.max(1, Math.ceil(totalCount/pageSize));
+    for (
+      let i = Math.max(2, currentPage - delta);
+      i <= Math.min(totalPages - 1, currentPage + delta);
+      i++
+    ) {
+      range.push(i);
+    }
 
-    return(
-    <div className="min-h-screen bg-gray-50">
-        <Sidebar currentPath="/inventory" />
-            <main className="ml-64 p-8">
-                <div className="mb-8">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-semibold text-gray-900">
-                                Inventory
-                            </h1>
-                            <p className="text-sm text-gray-500">
-                                Manage your products and track inventory levels.
-                            </p>
-                        </div>
-                    </div>
-                </div>
+    if (currentPage - delta > 2) {
+      rangeWithDots.push(1, "...");
+    } else {
+      rangeWithDots.push(1);
+    }
 
-                <div className="space-y-6">
+    rangeWithDots.push(...range);
 
-                    {/* Search */}
-                    <div className="bg-white rounded-lg border border-gray-200 p-6">
-                        <form className="flex gap-2" action="/inventory" method="GET">
-                            <input type="text" 
-                                name="q"
-                                defaultValue={q}
-                                placeholder="Search products..." 
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
-                            />
-                            <button type="submit" className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-                                Search
-                            </button>
-                        </form>
-                    </div>
+    if (currentPage + delta < totalPages - 1) {
+      rangeWithDots.push("...", totalPages);
+    } else {
+      rangeWithDots.push(totalPages);
+    }
 
-                    {/*Products Table*/}
-                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                        <table className="w-full">
-                            <thead className="bg-gray-50">
-                                <tr>   
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Low Stock At</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                                </tr>
-                            </thead>
+    return rangeWithDots;
+  };
 
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {items.map((product, key) => (
-                                    <tr key={key} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 text-s text-gray-500">
-                                            {product.name}
-                                        </td>
-                                        <td className="px-6 py-4 text-s text-gray-500">
-                                            {product.sku || "-"}
-                                        </td>
-                                        <td className="px-6 py-4 text-s text-gray-500">
-                                            {Number(product.price).toFixed(2)} kr
-                                        </td>
-                                        <td className="px-6 py-4 text-s text-gray-500">
-                                            {product.quantity}
-                                        </td>
-                                        <td className="px-6 py-4 text-s text-gray-500">
-                                            {product.lowStockAt || "-"}
-                                        </td>
-                                        <td className="px-6 py-4 text-s text-gray-500">
-                                            <form action={async (formData: FormData) => {
-                                                "use server"
-                                                await deleteProduct(formData);
-                                            }}>
-                                                <input type="hidden" name="id" value={product.id}/>
-                                                <button className="text-red-600 hover:text-red-900">
-                                                    Delete
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>  
+  const visiblePages = getVisiblePages();
 
-                    {totalPages > 1 && (
-                        <div className="bg-white rounded-lg border border-gray-200 p-6">
-                            <Pagination 
-                                currentPage={page} 
-                                totalPages={totalPages}
-                                baseUrl="/inventory"
-                                searchParams={{
-                                    q,
-                                    pageSize: String(pageSize),
-                                }}
-                            />
-                        </div>
-                    )}
-                </div>
+  return (
+    <nav className="flex items-center justify-center gap-1">
+      <Link
+        href={getPageUrl(currentPage - 1)}
+        className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
+          currentPage <= 1
+            ? "text-gray-400 cursor-not-allowed bg-gray-100"
+            : "text-gray-700 hover:bg-gray-100 bg-white border border-gray-300"
+        }`}
+        aria-disabled={currentPage <= 1}
+      >
+        <ChevronLeft /> Previous
+      </Link>
 
-            </main>
-        </div>
-    )    
+      {visiblePages.map((page: number | string, key: number) => {
+        if (page === "...") {
+          return (
+            <span key={key} className="px-3 py-2 text-sm text-gray-500">
+              ...
+            </span>
+          );
+        }
+
+        const pageNumber = page as number;
+        const isCurrentPage = pageNumber === currentPage;
+
+        return (
+          <Link
+            key={key}
+            href={getPageUrl(pageNumber)}
+            className={`px-3 py-2 text-sm font-medium rounded-lg ${
+              isCurrentPage
+                ? "bg-purple-600 text-white"
+                : "text-gray-700 hover:bg-gray-100 bg-white border border-gray-300"
+            }`}
+          >
+            {pageNumber}
+          </Link>
+        );
+      })}
+
+      <Link
+        href={getPageUrl(currentPage + 1)}
+        className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg ${
+          currentPage >= totalPages
+            ? "text-gray-400 cursor-not-allowed bg-gray-100"
+            : "text-gray-700 hover:bg-gray-100 bg-white border border-gray-300"
+        }`}
+        aria-disabled={currentPage >= totalPages}
+      >
+        Next
+        <ChevronRight />
+      </Link>
+    </nav>
+  );
 }
