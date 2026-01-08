@@ -10,11 +10,19 @@ export async function confirmSale(items: { id: string; quantity: number }[]) {
       throw new Error("Invalid items");
     }
 
-    // Update inventory for each item
-    for (const item of items) {
-      const product = await prisma.product.findUnique({
-        where: { id: item.id },
-      });
+    // Fetch all products and calculate total
+    const products = await Promise.all(
+      items.map((item) =>
+        prisma.product.findUnique({
+          where: { id: item.id },
+        })
+      )
+    );
+
+    // Validate all products exist and have sufficient stock
+    for (let i = 0; i < products.length; i++) {
+      const product = products[i];
+      const item = items[i];
 
       if (!product) {
         throw new Error(`Product ${item.id} not found`);
@@ -25,17 +33,52 @@ export async function confirmSale(items: { id: string; quantity: number }[]) {
       if (newQuantity < 0) {
         throw new Error(`Insufficient stock for ${product.name}`);
       }
-
-      await prisma.product.update({
-        where: { id: item.id },
-        data: { quantity: newQuantity },
-      });
     }
 
-    // Revalidate pages that show product data
+    // Calculate total amount
+    const totalAmount = items.reduce((sum, item, index) => {
+      const product = products[index];
+      return sum + Number(product!.price) * item.quantity;
+    }, 0);
+
+    // Create sale record with all items in a transaction
+    await prisma.$transaction(async (tx) => {
+      // Create the sale
+      const sale = await tx.sale.create({
+        data: {
+          totalAmount,
+          items: {
+            create: items.map((item, index) => {
+              const product = products[index];
+              return {
+                productId: item.id,
+                quantity: item.quantity,
+                price: product!.price,
+              };
+            }),
+          },
+        },
+      });
+
+      // Update inventory for each item
+      for (const item of items) {
+        const product = products.find((p) => p?.id === item.id);
+        const newQuantity = Number(product!.quantity) - item.quantity;
+
+        await tx.product.update({
+          where: { id: item.id },
+          data: { quantity: newQuantity },
+        });
+      }
+
+      return sale;
+    });
+
+    // Revalidate pages that show product and sales data
     revalidatePath("/inventory");
     revalidatePath("/dashboard");
     revalidatePath("/sell");
+    revalidatePath("/statistics");
 
     return { success: true };
   } catch (error) {

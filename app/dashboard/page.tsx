@@ -1,4 +1,4 @@
-import ProductsChart from "@/components/products-chart";
+import { ProductChart } from "@/components/products-chart";
 import Sidebar from "@/components/sidebar";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -204,7 +204,7 @@ export default async function DashboardPage() {
               </div>
             </div>
             <div className="h-64">
-              <ProductsChart data={weeklyProductsData} />
+              <ProductChart data={weeklyProductsData} />
             </div>
           </div>
         </div>

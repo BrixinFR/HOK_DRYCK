@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Package, Plus, Settings, ShoppingCart } from "lucide-react";
+import { BarChart3, Package, Plus, Settings, ShoppingCart, TrendingUp } from "lucide-react";
 import { UserButton } from "@stackframe/stack";
 
 // Skeleton component for loading states
@@ -19,6 +19,7 @@ function LoadingSidebar() {
     { name: "Inventory", href: "/inventory", icon: Package },
     { name: "Add Product", href: "/add-product", icon: Plus },
     { name: "Sell Products", href: "/sell", icon: ShoppingCart },
+    { name: "Statistics", href: "/statistics", icon: TrendingUp },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
