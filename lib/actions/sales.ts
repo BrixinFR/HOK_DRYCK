@@ -1,16 +1,20 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "../auth";
 import { revalidatePath } from "next/cache";
 
-export async function confirmSale(items: { id: string; quantity: number }[]) {
+export async function confirmSale(
+  items: { id: string; quantity: number }[],
+  paymentMethod: "swish" | "account" = "swish"
+) {
   try {
-    // Validate request
+    const user = await getCurrentUser();
+
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error("Invalid items");
     }
 
-    // Fetch all products and calculate total
     const products = await Promise.all(
       items.map((item) =>
         prisma.product.findUnique({
@@ -19,7 +23,6 @@ export async function confirmSale(items: { id: string; quantity: number }[]) {
       )
     );
 
-    // Validate all products exist and have sufficient stock
     for (let i = 0; i < products.length; i++) {
       const product = products[i];
       const item = items[i];
@@ -35,15 +38,36 @@ export async function confirmSale(items: { id: string; quantity: number }[]) {
       }
     }
 
-    // Calculate total amount
     const totalAmount = items.reduce((sum, item, index) => {
       const product = products[index];
       return sum + Number(product!.price) * item.quantity;
     }, 0);
 
-    // Create sale record with all items in a transaction
+    if (paymentMethod === "account") {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { accountBalance: true },
+      });
+
+      const balance = Number(dbUser?.accountBalance || 0);
+
+      if (balance < totalAmount) {
+        throw new Error("Insufficient account balance");
+      }
+    }
+
     await prisma.$transaction(async (tx) => {
-      // Create the sale
+      if (paymentMethod === "account") {
+        await tx.user.update({
+          where: { id: user.id },
+          data: {
+            accountBalance: {
+              decrement: totalAmount,
+            },
+          },
+        });
+      }
+
       const sale = await tx.sale.create({
         data: {
           totalAmount,
@@ -60,7 +84,6 @@ export async function confirmSale(items: { id: string; quantity: number }[]) {
         },
       });
 
-      // Update inventory for each item
       for (const item of items) {
         const product = products.find((p) => p?.id === item.id);
         const newQuantity = Number(product!.quantity) - item.quantity;
@@ -74,7 +97,6 @@ export async function confirmSale(items: { id: string; quantity: number }[]) {
       return sale;
     });
 
-    // Revalidate pages that show product and sales data
     revalidatePath("/inventory");
     revalidatePath("/dashboard");
     revalidatePath("/sell");

@@ -1,7 +1,7 @@
 import Pagination from "@/components/Pagination";
 import Sidebar from "@/components/sidebar";
-import { deleteProduct } from "@/lib/actions/products";
-import { getCurrentUser } from "@/lib/auth";
+import DeleteProductButton from "@/components/DeleteProductButton";
+import { getCurrentUser, isAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Decimal } from "@prisma/client/runtime/library";
 
@@ -25,6 +25,7 @@ export default async function InventoryPage({
 }) {
 
     const user = await getCurrentUser();
+    const isUserAdmin = await isAdmin();
 
     const pageSize = 10;
     const params = await searchParams;
@@ -91,7 +92,9 @@ export default async function InventoryPage({
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Low Stock At</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                    {isUserAdmin && (
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                    )}
                                 </tr>
                             </thead>
 
@@ -113,17 +116,11 @@ export default async function InventoryPage({
                                         <td className="px-6 py-4 text-s text-gray-500">
                                             {product.lowStockAt || "-"}
                                         </td>
-                                        <td className="px-6 py-4 text-s text-gray-500">
-                                            <form action={async (formData: FormData) => {
-                                                "use server"
-                                                await deleteProduct(formData);
-                                            }}>
-                                                <input type="hidden" name="id" value={product.id}/>
-                                                <button className="text-red-600 hover:text-red-900">
-                                                    Delete
-                                                </button>
-                                            </form>
-                                        </td>
+                                        {isUserAdmin && (
+                                            <td className="px-6 py-4 text-s text-gray-500">
+                                                <DeleteProductButton productId={product.id} />
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>

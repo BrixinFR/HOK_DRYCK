@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "../auth";
+import { getCurrentUser, isAdmin } from "../auth";
 import { prisma } from "../prisma";
 import { z } from "zod";
 
@@ -15,8 +15,20 @@ const ProductSchema = z.object({
 
 export async function deleteProduct(formData: FormData) {
   const user = await getCurrentUser();
+  const admin = await isAdmin();
+  
+  if (!admin) {
+    throw new Error("Unauthorized: Admin access required");
+  }
+
   const id = String(formData.get("id") || "");
 
+  // Delete all sale items for this product first
+  await prisma.saleItem.deleteMany({
+    where: { productId: id }
+  });
+
+  // Then delete the product
   await prisma.product.deleteMany({
     where: { id: id, userId: user.id },
   });
@@ -41,7 +53,6 @@ export async function createProduct(formData: FormData) {
   }
 
   try {
-    // Check if a product with this exact name already exists (case-insensitive)
     const existingProduct = await prisma.product.findFirst({
       where: {
         name: {
@@ -52,18 +63,16 @@ export async function createProduct(formData: FormData) {
     });
 
     if (existingProduct) {
-      // Product exists - add to the existing quantity
       await prisma.product.update({
         where: { id: existingProduct.id },
         data: {
           quantity: existingProduct.quantity + parsed.data.quantity,
-          price: parsed.data.price, // Update to new price
+          price: parsed.data.price,
           ...(parsed.data.sku && { sku: parsed.data.sku }),
           ...(parsed.data.lowStockAt && { lowStockAt: parsed.data.lowStockAt }),
         },
       });
     } else {
-      // Product doesn't exist - create new one
       await prisma.product.create({
         data: { ...parsed.data, userId: user.id },
       });

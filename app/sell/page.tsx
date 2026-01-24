@@ -2,9 +2,10 @@
 
 import Sidebar from "@/components/sidebar";
 import { confirmSale } from "@/lib/actions/sales";
+import { addFunds, getAccountBalance } from "@/lib/actions/account";
 import { useState, useEffect } from "react";
 import QRCode from "qrcode";
-import { ShoppingCart, Trash2, Plus, Minus, QrCode, X } from "lucide-react";
+import { ShoppingCart, Trash2, Plus, Minus, QrCode, X, Wallet } from "lucide-react";
 
 interface Product {
   id: string;
@@ -24,14 +25,19 @@ export default function SellPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [showAddFundsModal, setShowAddFundsModal] = useState(false);
   const [swishNumber, setSwishNumber] = useState("0730874001");
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [accountBalance, setAccountBalance] = useState(0);
+  const [fundsAmount, setFundsAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"swish" | "account">("swish");
 
-  // Fetch products on mount
+  // Fetch products and balance on mount
   useEffect(() => {
     fetchProducts();
+    fetchBalance();
   }, []);
 
   async function fetchProducts() {
@@ -48,6 +54,15 @@ export default function SellPage() {
       console.error("Failed to fetch products:", error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchBalance() {
+    try {
+      const balance = await getAccountBalance();
+      setAccountBalance(balance);
+    } catch (error) {
+      console.error("Failed to fetch balance:", error);
     }
   }
 
@@ -113,16 +128,10 @@ export default function SellPage() {
       return;
     }
 
-    // Swish payment link format for QR codes
-    // Format: C{phoneNumber};{amount};{message};0
-    // The C prefix indicates it's a commerce payment
-    // The 0 at the end is editable flag (0 = locked, 1 = editable)
-    
-    const phoneNumber = swishNumber.replace(/\s/g, "").replace(/^\+46/, ""); // Remove spaces and +46 prefix
+    const phoneNumber = swishNumber.replace(/\s/g, "").replace(/^\+46/, "");
     const amount = total.toFixed(2);
-    const message = ""; // Leave message blank
+    const message = "";
     
-    // Swish QR format: C{phone};{amount};{message};{editable}
     const swishQrData = `C${phoneNumber};${amount};${message};0`;
 
     try {
@@ -132,10 +141,48 @@ export default function SellPage() {
         errorCorrectionLevel: 'M',
       });
       setQrCodeUrl(qr);
+      setPaymentMethod("swish");
       setShowQrModal(true);
     } catch (error) {
       console.error("Failed to generate QR code:", error);
       alert("Failed to generate QR code");
+    }
+  }
+
+  // Pay with account balance
+  function payWithAccount() {
+    if (cart.length === 0) {
+      alert("Cart is empty");
+      return;
+    }
+
+    if (accountBalance < total) {
+      alert(`Insufficient balance. You need ${(total - accountBalance).toFixed(2)} kr more.`);
+      return;
+    }
+
+    setPaymentMethod("account");
+    setShowQrModal(true);
+  }
+
+  // Add funds to account
+  async function handleAddFunds() {
+    const amount = parseFloat(fundsAmount);
+    
+    if (isNaN(amount) || amount <= 0) {
+      alert("Please enter a valid amount");
+      return;
+    }
+
+    try {
+      await addFunds(amount);
+      await fetchBalance();
+      setShowAddFundsModal(false);
+      setFundsAmount("");
+      alert(`Successfully added ${amount.toFixed(2)} kr to your account!`);
+    } catch (error) {
+      console.error("Failed to add funds:", error);
+      alert("Failed to add funds");
     }
   }
 
@@ -148,7 +195,8 @@ export default function SellPage() {
         cart.map((item) => ({
           id: item.id,
           quantity: item.cartQuantity,
-        }))
+        })),
+        paymentMethod
       );
 
       // Success! Clear cart and close modal
@@ -156,16 +204,17 @@ export default function SellPage() {
       setShowQrModal(false);
       setShowSuccessMessage(true);
       
-      // Refresh products to get updated quantities
+      // Refresh products and balance
       fetchProducts();
+      fetchBalance();
 
       // Hide success message after 3 seconds
       setTimeout(() => {
         setShowSuccessMessage(false);
       }, 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to confirm payment:", error);
-      alert("Failed to confirm payment. Please try again.");
+      alert(error.message || "Failed to confirm payment. Please try again.");
     } finally {
       setConfirming(false);
     }
@@ -208,6 +257,23 @@ export default function SellPage() {
               <p className="text-sm text-gray-600">
                 Select products and generate Swish payment
               </p>
+            </div>
+            
+            {/* Account Balance Display */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
+              <div className="flex items-center gap-3">
+                <Wallet className="w-6 h-6 text-[#de3163]" />
+                <div>
+                  <p className="text-xs text-gray-500">Account Balance</p>
+                  <p className="text-2xl font-bold text-gray-900">{accountBalance.toFixed(2)} kr</p>
+                </div>
+                <button
+                  onClick={() => setShowAddFundsModal(true)}
+                  className="ml-4 px-4 py-2 bg-[#de3163] text-white rounded-lg hover:bg-[#c72856] text-sm font-semibold"
+                >
+                  Add Funds
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -348,27 +414,53 @@ export default function SellPage() {
                       </span>
                     </div>
 
-                    {/* Swish Number Input */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-semibold text-gray-800 mb-2">
-                        Swish Number
-                      </label>
-                      <input
-                        type="text"
-                        value={swishNumber}
-                        onChange={(e) => setSwishNumber(e.target.value)}
-                        placeholder="07XXXXXXXX (without +46)"
-                        className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[#de3163] focus:ring-2 focus:ring-[#de3163]/20 focus:outline-none transition-all"
-                      />
-                    </div>
+                    {/* Payment Method Selector */}
+                    <div className="space-y-3">
+                      <button
+                        onClick={payWithAccount}
+                        disabled={accountBalance < total}
+                        className="w-full px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                      >
+                        <Wallet className="w-5 h-5" />
+                        Pay with Account Balance
+                        {accountBalance < total && (
+                          <span className="text-xs">
+                            (Need {(total - accountBalance).toFixed(2)} kr more)
+                          </span>
+                        )}
+                      </button>
 
-                    <button
-                      onClick={generateSwishQR}
-                      className="w-full px-6 py-3 bg-[#de3163] text-white font-semibold rounded-lg hover:bg-[#c72856] transition-all flex items-center justify-center gap-2"
-                    >
-                      <QrCode className="w-5 h-5" />
-                      Generate Swish QR
-                    </button>
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-gray-300"></div>
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                          <span className="px-2 bg-white text-gray-500">or</span>
+                        </div>
+                      </div>
+
+                      {/* Swish Number Input */}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-800 mb-2">
+                          Swish Number
+                        </label>
+                        <input
+                          type="text"
+                          value={swishNumber}
+                          onChange={(e) => setSwishNumber(e.target.value)}
+                          placeholder="07XXXXXXXX"
+                          className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-[#de3163] focus:ring-2 focus:ring-[#de3163]/20 focus:outline-none transition-all"
+                        />
+                      </div>
+
+                      <button
+                        onClick={generateSwishQR}
+                        className="w-full px-6 py-3 bg-[#de3163] text-white font-semibold rounded-lg hover:bg-[#c72856] transition-all flex items-center justify-center gap-2"
+                      >
+                        <QrCode className="w-5 h-5" />
+                        Generate Swish QR
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -377,8 +469,59 @@ export default function SellPage() {
         </div>
       </main>
 
-      {/* QR Code Modal */}
-      {showQrModal && qrCodeUrl && (
+      {/* Add Funds Modal */}
+      {showAddFundsModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative">
+            <button
+              onClick={() => setShowAddFundsModal(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Add Funds to Account
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Add money to your account balance for quick payments
+            </p>
+
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-800 mb-2">
+                Amount (kr)
+              </label>
+              <input
+                type="number"
+                value={fundsAmount}
+                onChange={(e) => setFundsAmount(e.target.value)}
+                placeholder="200"
+                min="0"
+                step="0.01"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-[#de3163] focus:ring-2 focus:ring-[#de3163]/20 focus:outline-none transition-all text-lg"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleAddFunds}
+                className="flex-1 px-6 py-3 bg-[#de3163] text-white font-semibold rounded-lg hover:bg-[#c72856] transition-all"
+              >
+                Add Funds
+              </button>
+              <button
+                onClick={() => setShowAddFundsModal(false)}
+                className="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Confirmation Modal */}
+      {showQrModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative">
             <button
@@ -389,32 +532,50 @@ export default function SellPage() {
             </button>
 
             <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">
-              Swish Payment
+              {paymentMethod === "account" ? "Pay with Account" : "Swish Payment"}
             </h2>
             <p className="text-gray-600 text-center mb-6">
-              Scan with Swish app to pay
+              {paymentMethod === "account" 
+                ? "Confirm payment from your account balance" 
+                : "Scan with Swish app to pay"}
             </p>
 
-            <div className="flex justify-center mb-6">
-              <img src={qrCodeUrl} alt="Swish QR Code" className="rounded-lg" />
-            </div>
+            {paymentMethod === "swish" && qrCodeUrl && (
+              <div className="flex justify-center mb-6">
+                <img src={qrCodeUrl} alt="Swish QR Code" className="rounded-lg" />
+              </div>
+            )}
 
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <div className="flex justify-between mb-2">
                 <span className="text-gray-600">Amount:</span>
                 <span className="font-bold text-gray-900">{total.toFixed(2)} kr</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between mb-2">
                 <span className="text-gray-600">Items:</span>
                 <span className="font-bold text-gray-900">{cart.length}</span>
               </div>
+              {paymentMethod === "account" && (
+                <>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-600">Current Balance:</span>
+                    <span className="font-bold text-gray-900">{accountBalance.toFixed(2)} kr</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">After Payment:</span>
+                    <span className="font-bold text-green-600">{(accountBalance - total).toFixed(2)} kr</span>
+                  </div>
+                </>
+              )}
             </div>
 
-            <p className="text-xs text-gray-500 text-center">
-              Scan this QR code with the Swish app to complete payment. The amount is locked and cannot be changed.
-            </p>
+            {paymentMethod === "swish" && (
+              <p className="text-xs text-gray-500 text-center mb-6">
+                Scan this QR code with the Swish app to complete payment.
+              </p>
+            )}
 
-            <div className="mt-6 flex gap-3">
+            <div className="flex gap-3">
               <button
                 onClick={confirmPayment}
                 disabled={confirming}
@@ -459,7 +620,7 @@ export default function SellPage() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    Confirm Payment Received
+                    Confirm Payment
                   </>
                 )}
               </button>

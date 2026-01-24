@@ -4,20 +4,34 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-    url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id
+  email          String   @unique
+  role           Role     @default(USER)
+  accountBalance Decimal  @default(0) @db.Decimal(10, 2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
 }
 
 model Product {
-  id String @id @default(cuid())
-  userId String
-  name String
-  sku String? @unique
-  price Decimal @db.Decimal(12,2)
-  quantity Int @default(0)
-  lowStockAt Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  sales SaleItem[]
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  sku         String?   @unique
+  price       Decimal   @db.Decimal(12,2)
+  quantity    Int       @default(0)
+  lowStockAt  Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  sales       SaleItem[]
 
   @@index([userId, name])
   @@index([createdAt])
