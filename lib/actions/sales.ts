@@ -6,10 +6,20 @@ import { revalidatePath } from "next/cache";
 
 export async function confirmSale(
   items: { id: string; quantity: number }[],
-  paymentMethod: "swish" | "account" = "swish"
+  paymentMethod: "swish" | "account" = "swish",
+  userId?: string // Optional userId for account-payment page
 ) {
   try {
-    const user = await getCurrentUser();
+    // Determine which user to use
+    let targetUserId: string;
+    if (userId) {
+      // Use provided userId 
+      targetUserId = userId;
+    } else {
+      // Use current authenticated user
+      const user = await getCurrentUser();
+      targetUserId = user.id;
+    }
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       throw new Error("Invalid items");
@@ -45,7 +55,7 @@ export async function confirmSale(
 
     if (paymentMethod === "account") {
       const dbUser = await prisma.user.findUnique({
-        where: { id: user.id },
+        where: { id: targetUserId },
         select: { accountBalance: true },
       });
 
@@ -59,7 +69,7 @@ export async function confirmSale(
     await prisma.$transaction(async (tx) => {
       if (paymentMethod === "account") {
         await tx.user.update({
-          where: { id: user.id },
+          where: { id: targetUserId },
           data: {
             accountBalance: {
               decrement: totalAmount,
@@ -101,6 +111,7 @@ export async function confirmSale(
     revalidatePath("/dashboard");
     revalidatePath("/sell");
     revalidatePath("/statistics");
+    revalidatePath("/account-payment");
 
     return { success: true };
   } catch (error) {

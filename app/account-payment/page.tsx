@@ -4,7 +4,7 @@ import Sidebar from "@/components/sidebar";
 import { confirmSale } from "@/lib/actions/sales";
 import { addFunds, getAccountBalance } from "@/lib/actions/account";
 import { useState, useEffect } from "react";
-import { ShoppingCart, Wallet, DollarSign } from "lucide-react";
+import { ShoppingCart, Wallet, DollarSign, User } from "lucide-react";
 import ProductCard from "@/components/sell/ProductCard";
 import CartItem from "@/components/sell/CartItem";
 import AccountModal from "@/components/sell/AccountPayment";
@@ -22,13 +22,22 @@ interface CartItemType extends Product {
   cartQuantity: number;
 }
 
+interface UserAccount {
+  id: string;
+  email: string;
+  accountBalance: number;
+}
+
 export default function AccountPaymentPage() {
+  const [users, setUsers] = useState<UserAccount[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItemType[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<"payment" | "add_funds">("payment");
   const [loading, setLoading] = useState(true);
+  const [loadingUsers, setLoadingUsers] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [accountBalance, setAccountBalance] = useState(0);
@@ -38,8 +47,47 @@ export default function AccountPaymentPage() {
 
   useEffect(() => {
     fetchProducts();
-    fetchBalance();
+    fetchUsers();
   }, []);
+
+  useEffect(() => {
+    if (selectedUserId) {
+      fetchBalance();
+    }
+  }, [selectedUserId]);
+
+  async function fetchUsers() {
+    setLoadingUsers(true);
+    try {
+      const response = await fetch("/api/get-users");
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API error:", errorData);
+        alert(`Failed to fetch users: ${errorData.error || response.statusText}`);
+        return;
+      }
+      
+      const data = await response.json();
+      console.log("Users fetched:", data);
+      
+      if (!Array.isArray(data)) {
+        console.error("Invalid response format:", data);
+        alert("Invalid response format from server");
+        return;
+      }
+      
+      setUsers(data.map((u: any) => ({
+        ...u,
+        accountBalance: Number(u.accountBalance),
+      })));
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      alert(`Error fetching users: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setLoadingUsers(false);
+    }
+  }
 
   async function fetchProducts() {
     try {
@@ -58,8 +106,9 @@ export default function AccountPaymentPage() {
   }
 
   async function fetchBalance() {
+    if (!selectedUserId) return;
     try {
-      const balance = await getAccountBalance();
+      const balance = await getAccountBalance(selectedUserId);
       setAccountBalance(balance);
     } catch (error) {
       console.error("Failed to fetch balance:", error);
@@ -73,6 +122,10 @@ export default function AccountPaymentPage() {
   const total = cart.reduce((sum, item) => sum + item.price * item.cartQuantity, 0);
 
   function addToCart(product: Product) {
+    if (!selectedUserId) {
+      alert("Please select a user account first");
+      return;
+    }
     const existing = cart.find((item) => item.id === product.id);
     if (existing) {
       if (existing.cartQuantity < product.quantity) {
@@ -106,6 +159,10 @@ export default function AccountPaymentPage() {
   }
 
   function initiatePayment() {
+    if (!selectedUserId) {
+      alert("Please select a user account first");
+      return;
+    }
     if (cart.length === 0) return;
     if (accountBalance < total) {
       alert(`Insufficient balance. Need ${(total - accountBalance).toFixed(2)} kr more.`);
@@ -116,6 +173,10 @@ export default function AccountPaymentPage() {
   }
 
   async function initiateAddFunds() {
+    if (!selectedUserId) {
+      alert("Please select a user account first");
+      return;
+    }
     const amount = parseFloat(addFundsAmount);
     if (isNaN(amount) || amount <= 0) {
       alert("Please enter a valid amount");
@@ -130,11 +191,13 @@ export default function AccountPaymentPage() {
   }
 
   async function handleConfirm() {
+    if (!selectedUserId) return;
+
     if (modalMode === "add_funds") {
       const amount = parseFloat(addFundsAmount);
       setConfirming(true);
       try {
-        await addFunds(amount);
+        await addFunds(selectedUserId, amount);
         await fetchBalance();
         setShowModal(false);
         swishQR.clearQR();
@@ -151,7 +214,8 @@ export default function AccountPaymentPage() {
       try {
         await confirmSale(
           cart.map((item) => ({ id: item.id, quantity: item.cartQuantity })),
-          "account"
+          "account",
+          selectedUserId
         );
         setCart([]);
         setShowModal(false);
@@ -172,39 +236,76 @@ export default function AccountPaymentPage() {
     swishQR.clearQR();
   }
 
+  const selectedUser = users.find(u => u.id === selectedUserId);
+
   return (
     <div className="min-h-screen bg-linear-to-br from-purple-50 via-white to-blue-50">
       <Sidebar currentPath="/account-payment" />
 
-      {/* Balance Display */}
+      {/* User Selection & Balance Display */}
       <div className="fixed bottom-8 right-8 z-40">
         <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 mb-4">
-          <div className="flex items-center gap-3 mb-3">
-            <Wallet className="w-6 h-6 text-purple-600" />
-            <div>
-              <p className="text-xs text-gray-500">Account Balance</p>
-              <p className="text-2xl font-bold text-gray-900">{accountBalance.toFixed(2)} kr</p>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <input
-              type="number"
-              value={addFundsAmount}
-              onChange={(e) => setAddFundsAmount(e.target.value)}
-              placeholder="Amount to add"
-              min="0"
-              step="0.01"
-              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 focus:outline-none transition-all text-sm"
-            />
-            <button
-              onClick={initiateAddFunds}
-              className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-semibold transition-all flex items-center justify-center gap-2"
+          {/* User Selector */}
+          <div className="mb-4 pb-4 border-b border-gray-200">
+            <label className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+              <User className="w-4 h-4" />
+              Select Account
+            </label>
+            <select
+              value={selectedUserId}
+              onChange={(e) => {
+                setSelectedUserId(e.target.value);
+                setCart([]); // Clear cart when switching users
+              }}
+              disabled={loadingUsers}
+              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 focus:outline-none transition-all text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
-              <DollarSign className="w-4 h-4" />
-              Add Funds
-            </button>
+              <option value="">
+                {loadingUsers ? "Loading users..." : "-- Choose User --"}
+              </option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.email}
+                </option>
+              ))}
+            </select>
+            {!loadingUsers && users.length === 0 && (
+              <p className="text-xs text-red-500 mt-1">No users found in database</p>
+            )}
           </div>
+
+          {selectedUserId && (
+            <>
+              {/* Balance Display */}
+              <div className="flex items-center gap-3 mb-3">
+                <Wallet className="w-6 h-6 text-purple-600" />
+                <div>
+                  <p className="text-xs text-gray-500">Account Balance</p>
+                  <p className="text-2xl font-bold text-gray-900">{accountBalance.toFixed(2)} kr</p>
+                </div>
+              </div>
+              
+              {/* Add Funds */}
+              <div className="space-y-2">
+                <input
+                  type="number"
+                  value={addFundsAmount}
+                  onChange={(e) => setAddFundsAmount(e.target.value)}
+                  placeholder="Amount to add"
+                  min="0"
+                  step="0.01"
+                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 focus:outline-none transition-all text-sm"
+                />
+                <button
+                  onClick={initiateAddFunds}
+                  className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                >
+                  <DollarSign className="w-4 h-4" />
+                  Add Funds
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -222,8 +323,24 @@ export default function AccountPaymentPage() {
       <main className="ml-64 p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Account Payment</h1>
-          <p className="text-sm text-gray-600">Pay with your account balance</p>
+          <p className="text-sm text-gray-600">
+            {selectedUser ? `Paying with ${selectedUser.email}'s account` : 'Select a user account to continue'}
+          </p>
         </div>
+
+        {!selectedUserId && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+            <div className="flex items-start gap-3">
+              <User className="w-6 h-6 text-blue-600 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-blue-900 mb-1">Select a User Account</h3>
+                <p className="text-sm text-blue-700">
+                  Please select a user account from the panel on the right to start shopping.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Products */}
@@ -234,7 +351,8 @@ export default function AccountPaymentPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search products..."
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 focus:outline-none transition-all"
+                disabled={!selectedUserId}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 focus:outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -242,6 +360,8 @@ export default function AccountPaymentPage() {
               <h2 className="text-lg font-bold text-gray-800 mb-4">Available Products</h2>
               {loading ? (
                 <p className="text-gray-500 text-center py-8">Loading...</p>
+              ) : !selectedUserId ? (
+                <p className="text-gray-500 text-center py-8">Select a user account to view products</p>
               ) : filteredProducts.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">No products found</p>
               ) : (
@@ -306,7 +426,7 @@ export default function AccountPaymentPage() {
 
                   <button
                     onClick={initiatePayment}
-                    disabled={cart.length === 0 || accountBalance < total}
+                    disabled={cart.length === 0 || accountBalance < total || !selectedUserId}
                     className="w-full px-6 py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                   >
                     <Wallet className="w-5 h-5" />
