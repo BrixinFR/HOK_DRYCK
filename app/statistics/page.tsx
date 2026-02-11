@@ -22,9 +22,8 @@ export default async function StatisticsPage() {
     orderBy: { createdAt: 'desc' },
   });
 
-  const userSales = recentSales.filter(sale => 
-    sale.items.some(item => item.product.userId === user.id)
-  );
+  // Remove user filtering - show ALL sales
+  const userSales = recentSales;
 
   // Fetch previous period for growth calculation
   const previousSales = await prisma.sale.findMany({
@@ -38,9 +37,8 @@ export default async function StatisticsPage() {
     },
   });
 
-  const userPreviousSales = previousSales.filter(sale =>
-    sale.items.some(item => item.product.userId === user.id)
-  );
+  // Remove user filtering - show ALL previous sales
+  const userPreviousSales = previousSales;
 
   // Calculate metrics
   const totalRevenue = userSales.reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
@@ -77,11 +75,11 @@ export default async function StatisticsPage() {
     sales: data.sales,
   }));
 
-  // Top products
+  // Top products - show ALL products, not just user's
   const productStats = new Map<string, { name: string; unitsSold: number; revenue: number }>();
   userSales.forEach((sale) => {
     sale.items.forEach((item) => {
-      if (item.product.userId !== user.id) return;
+      // Remove the userId filter here
       const current = productStats.get(item.productId) || {
         name: item.product.name,
         unitsSold: 0,
