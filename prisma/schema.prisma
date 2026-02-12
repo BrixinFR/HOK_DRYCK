@@ -11,6 +11,7 @@ model User {
   id             String   @id
   email          String   @unique
   role           Role     @default(USER)
+  password       String   @default("1234") 
   accountBalance Decimal  @default(0) @db.Decimal(10, 2)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

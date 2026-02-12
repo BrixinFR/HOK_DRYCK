@@ -190,7 +190,7 @@ export default function AccountPaymentPage() {
     }
   }
 
-  async function handleConfirm() {
+  async function handleConfirm(password?: string) {
     if (!selectedUserId) return;
 
     if (modalMode === "add_funds") {
@@ -209,13 +209,19 @@ export default function AccountPaymentPage() {
         setConfirming(false);
       }
     } else {
-      // Process payment
+      // Process payment with password verification
+      if (!password) {
+        alert("Password is required");
+        return;
+      }
+
       setConfirming(true);
       try {
         await confirmSale(
           cart.map((item) => ({ id: item.id, quantity: item.cartQuantity })),
           "account",
-          selectedUserId
+          selectedUserId,
+          password
         );
         setCart([]);
         setShowModal(false);

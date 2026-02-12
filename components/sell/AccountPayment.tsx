@@ -1,10 +1,11 @@
+
 import { X } from "lucide-react";
 import { useState } from "react";
 
 interface AccountModalProps {
   show: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (password?: string) => void; // Add password parameter
   mode: "payment" | "add_funds";
   amount: number;
   itemCount?: number;
@@ -12,8 +13,6 @@ interface AccountModalProps {
   qrCodeUrl?: string | null;
   confirming: boolean;
 }
-
-const ACCOUNT_PASSWORD = "1234"; // TODO: Replace with actual auth
 
 export default function AccountModal({
   show,
@@ -35,19 +34,17 @@ export default function AccountModal({
   const isAddFunds = mode === "add_funds";
 
   function handleConfirm() {
-    // Only validate password for payments (not for add funds)
     if (isPayment) {
       if (!password) {
         setError("Password is required");
         return;
       }
-      if (password !== ACCOUNT_PASSWORD) {
-        setError("Incorrect password");
-        return;
-      }
+      // Remove hardcoded password check - let server validate
+      setError("");
+      onConfirm(password); // Pass password to parent
+    } else {
+      onConfirm(); // Add funds doesn't need password
     }
-    setError("");
-    onConfirm();
   }
 
   function handleClose() {
@@ -69,20 +66,13 @@ export default function AccountModal({
         <h2 className="text-2xl font-bold text-gray-900 mb-2 text-center">
           {isAddFunds ? "Add Funds" : "Pay with Account"}
         </h2>
-        <p className="text-gray-600 text-center mb-6">
-          {isAddFunds 
-            ? "Scan with Swish to add funds to your account" 
-            : "Confirm payment from your account balance"}
-        </p>
 
-        {/* QR Code for Add Funds */}
         {isAddFunds && qrCodeUrl && (
           <div className="flex justify-center mb-6">
             <img src={qrCodeUrl} alt="Swish QR Code" className="rounded-lg" />
           </div>
         )}
 
-        {/* Amount Details */}
         <div className={`${isAddFunds ? 'bg-purple-50' : 'bg-gray-50'} rounded-lg p-4 mb-6`}>
           <div className="flex justify-between mb-2">
             <span className="text-gray-600">
@@ -114,7 +104,6 @@ export default function AccountModal({
           )}
         </div>
 
-        {/* Password Input for Payments */}
         {isPayment && (
           <div className="mb-6">
             <label className="block text-sm font-semibold text-gray-800 mb-2">
@@ -138,20 +127,15 @@ export default function AccountModal({
             {error && (
               <p className="text-red-500 text-sm mt-1">{error}</p>
             )}
-            <p className="text-xs text-gray-500 mt-1">
-              Demo password: 1234
-            </p>
           </div>
         )}
 
-        {/* Instructions for Add Funds */}
         {isAddFunds && (
           <p className="text-xs text-gray-500 text-center mb-6">
             Scan this QR code with the Swish app, then confirm below.
           </p>
         )}
 
-        {/* Action Buttons */}
         <div className="flex gap-3">
           <button
             onClick={handleConfirm}

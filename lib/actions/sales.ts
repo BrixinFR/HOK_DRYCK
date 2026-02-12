@@ -7,16 +7,15 @@ import { revalidatePath } from "next/cache";
 export async function confirmSale(
   items: { id: string; quantity: number }[],
   paymentMethod: "swish" | "account" = "swish",
-  userId?: string // Optional userId for account-payment page
+  userId?: string,
+  password?: string
 ) {
   try {
     // Determine which user to use
     let targetUserId: string;
     if (userId) {
-      // Use provided userId 
       targetUserId = userId;
     } else {
-      // Use current authenticated user
       const user = await getCurrentUser();
       targetUserId = user.id;
     }
@@ -56,10 +55,23 @@ export async function confirmSale(
     if (paymentMethod === "account") {
       const dbUser = await prisma.user.findUnique({
         where: { id: targetUserId },
-        select: { accountBalance: true },
+        select: { accountBalance: true, password: true },
       });
 
-      const balance = Number(dbUser?.accountBalance || 0);
+      if (!dbUser) {
+        throw new Error("User not found");
+      }
+
+      // Simple plain text password comparison
+      if (password) {
+        if (password !== dbUser.password) {
+          throw new Error("Incorrect password");
+        }
+      } else {
+        throw new Error("Password is required for account payment");
+      }
+
+      const balance = Number(dbUser.accountBalance || 0);
 
       if (balance < totalAmount) {
         throw new Error("Insufficient account balance");
