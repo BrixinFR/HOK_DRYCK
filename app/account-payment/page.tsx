@@ -242,73 +242,6 @@ export default function AccountPaymentPage() {
     <div className="min-h-screen bg-linear-to-br from-purple-50 via-white to-blue-50">
       <Sidebar currentPath="/account-payment" />
 
-      {/* User Selection & Balance Display */}
-      <div className="fixed bottom-8 right-8 z-40">
-        <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 mb-4">
-          {/* User Selector */}
-          <div className="mb-4 pb-4 border-b border-gray-200">
-            <label className="flex items-center gap-2 text-xs text-gray-500 mb-2">
-              <User className="w-4 h-4" />
-              Select Account
-            </label>
-            <select
-              value={selectedUserId}
-              onChange={(e) => {
-                setSelectedUserId(e.target.value);
-                setCart([]); // Clear cart when switching users
-              }}
-              disabled={loadingUsers}
-              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 focus:outline-none transition-all text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-            >
-              <option value="">
-                {loadingUsers ? "Loading users..." : "-- Choose User --"}
-              </option>
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.email}
-                </option>
-              ))}
-            </select>
-            {!loadingUsers && users.length === 0 && (
-              <p className="text-xs text-red-500 mt-1">No users found in database</p>
-            )}
-          </div>
-
-          {selectedUserId && (
-            <>
-              {/* Balance Display */}
-              <div className="flex items-center gap-3 mb-3">
-                <Wallet className="w-6 h-6 text-purple-600" />
-                <div>
-                  <p className="text-xs text-gray-500">Account Balance</p>
-                  <p className="text-2xl font-bold text-gray-900">{accountBalance.toFixed(2)} kr</p>
-                </div>
-              </div>
-              
-              {/* Add Funds */}
-              <div className="space-y-2">
-                <input
-                  type="number"
-                  value={addFundsAmount}
-                  onChange={(e) => setAddFundsAmount(e.target.value)}
-                  placeholder="Amount to add"
-                  min="0"
-                  step="0.01"
-                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 focus:outline-none transition-all text-sm"
-                />
-                <button
-                  onClick={initiateAddFunds}
-                  className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-semibold transition-all flex items-center justify-center gap-2"
-                >
-                  <DollarSign className="w-4 h-4" />
-                  Add Funds
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
       {showSuccess && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top duration-300">
           <div className="bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3">
@@ -384,7 +317,74 @@ export default function AccountPaymentPage() {
           </div>
 
           {/* Cart */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 sticky top-8 h-fit">
+          <div className="space-y-4">
+            {/* User Selection & Balance Display */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+              {/* User Selector */}
+              <div className="mb-4 pb-4 border-b border-gray-200">
+                <label className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                  <User className="w-4 h-4" />
+                  Select Account
+                </label>
+                <select
+                  value={selectedUserId}
+                  onChange={(e) => {
+                    setSelectedUserId(e.target.value);
+                    setCart([]); // Clear cart when switching users
+                  }}
+                  disabled={loadingUsers}
+                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 focus:outline-none transition-all text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">
+                    {loadingUsers ? "Loading users..." : "-- Choose User --"}
+                  </option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.email}
+                    </option>
+                  ))}
+                </select>
+                {!loadingUsers && users.length === 0 && (
+                  <p className="text-xs text-red-500 mt-1">No users found in database</p>
+                )}
+              </div>
+
+              {selectedUserId && (
+                <>
+                  {/* Balance Display */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <Wallet className="w-6 h-6 text-purple-600" />
+                    <div>
+                      <p className="text-xs text-gray-500">Account Balance</p>
+                      <p className="text-2xl font-bold text-gray-900">{accountBalance.toFixed(2)} kr</p>
+                    </div>
+                  </div>
+                  
+                  {/* Add Funds */}
+                  <div className="space-y-2">
+                    <input
+                      type="number"
+                      value={addFundsAmount}
+                      onChange={(e) => setAddFundsAmount(e.target.value)}
+                      placeholder="Amount to add"
+                      min="0"
+                      step="0.01"
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-600 focus:ring-2 focus:ring-purple-600/20 focus:outline-none transition-all text-sm"
+                    />
+                    <button
+                      onClick={initiateAddFunds}
+                      className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                    >
+                      <DollarSign className="w-4 h-4" />
+                      Add Funds
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Cart */}
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 sticky top-8 h-fit">
             <div className="flex items-center gap-2 mb-4">
               <ShoppingCart className="w-5 h-5 text-purple-600" />
               <h2 className="text-lg font-bold text-gray-800">Cart ({cart.length})</h2>
@@ -435,6 +435,7 @@ export default function AccountPaymentPage() {
                 </div>
               </>
             )}
+          </div>
           </div>
         </div>
       </main>
